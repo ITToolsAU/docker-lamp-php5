@@ -58,3 +58,33 @@ By default, the image comes with a `root` MySQL account that has no password. Th
 
 ## License
 Docker-LAMP is licensed under the [Apache 2.0 License](LICENSE.md).
+
+To facilitate local tracker debug work, it was added to the main vagrant environment file:
+
+```
+config.vm.define "tracker", primary: false do |box|
+        box.hostmanager.aliases = [ "tracker."+dev_domain ]
+        box.vm.network :private_network, ip: "#{ip_range}.201", subnet: "#{ip_range}.0/16"
+        box.vm.hostname = "tracker#{dev_domain}"
+        box.ssh.insert_key = true
+        box.ssh.username = "vagrant"
+        box.ssh.password = "vagrant"
+        box.vm.provider 'docker' do |d|
+            d.build_dir = "#{vagrant_root}/docker/docker-lamp-php5/"
+            d.dockerfile = "Dockerfile"
+            d.has_ssh = true
+            d.name = "tracker_#{dev_domain}"
+            d.create_args = ["--cap-add=NET_ADMIN"]
+            d.remains_running = true
+            d.volumes = [ENV['HOME']+"/.ssh/:/home/vagrant/.ssh", "#{vagrant_root}/sites/tracker:/app" , "#{vagrant_root}/persistent_storage/tracker_mysql:/var/lib/mysql"]
+        end
+        ## FINAL BOX MUST HAVE THIS
+        box.trigger.after :up do |trigger|
+            trigger.run = {inline: "bash -c 'vagrant hostmanager --provider docker'"}
+        end
+        ##
+    end
+```
+
+Thsi repo must be cloned into teh docker folder for this to work
+
